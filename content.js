@@ -10,7 +10,7 @@ function isCasePage() {
 // Function to extract case ID from URL
 function extractCaseId() {
     const url = window.location.href;
-    const hashPart = url.split('#/')[1]?.split('?')[0];
+    const hashPart = url.match(/#\/(\d+)/)?.[1];
     if (hashPart) {
         return hashPart;
     }

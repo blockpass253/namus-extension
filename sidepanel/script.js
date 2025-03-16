@@ -118,12 +118,33 @@ function renderCaseDetails(details) {
     let detailsHtml = '';
 
     for (const section in details) {
+        if (!details[section] || Object.keys(details[section]).length === 0) {
+            continue;
+        }
+
+        let hasContent = false;
+        for (const label in details[section]) {
+            if (details[section][label] && details[section][label].trim() !== '') {
+                hasContent = true;
+                break;
+            }
+        }
+
+        if (!hasContent) {
+            continue;
+        }
+
         detailsHtml += `
       <div class="detail-section">
         <div class="section-title">${section}</div>
     `;
 
         for (const label in details[section]) {
+            // Skip empty values
+            if (!details[section][label] || details[section][label].trim() === '') {
+                continue;
+            }
+
             detailsHtml += `
         <div class="detail-item">
           <div class="detail-label">${label}:</div>
@@ -133,6 +154,10 @@ function renderCaseDetails(details) {
         }
 
         detailsHtml += '</div>';
+    }
+
+    if (detailsHtml.trim() === '') {
+        return '<p>No details available</p>';
     }
 
     return detailsHtml;

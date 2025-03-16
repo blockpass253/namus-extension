@@ -127,15 +127,39 @@ h1 {
 .detail-item {
     display: flex;
     margin-bottom: 4px;
+    align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 .detail-label {
     font-weight: 500;
-    min-width: 120px;
+    width: 30%;
+    min-width: 100px;
+        max-width: 150px;
+        flex-shrink: 0;
+        padding-right: 8px;
+        text-align: right;
 }
 
 .detail-value {
     flex: 1;
+    min-width: 60%;
+}
+
+@media (max-width: 480px) {
+    .detail-item {
+        flex-direction: column;
+    }
+
+    .detail-label {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 2px;
+    }
+
+    .detail-value {
+        width: 100%;
+    }
 }
 
 .case-actions {
