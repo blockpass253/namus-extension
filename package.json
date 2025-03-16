@@ -1,0 +1,27 @@
+{
+  "name": "namus-chrome-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension to track and view NamUs missing person cases in a side panel",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "mkdir -p dist && cp -r manifest.json background.js content.js sidepanel icons dist/",
+    "zip": "cd dist && zip -r ../namus-extension.zip *"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blockpass253/namus-extension.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "namus",
+    "missing-persons",
+    "side-panel"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/blockpass253/namus-extension/issues"
+  },
+  "homepage": "https://github.com/blockpass253/namus-extension#readme"
+}

@@ -1,0 +1,55 @@
+{
+    "name": "NamUs Case Tracker",
+    "version": "0.1",
+    "manifest_version": 3,
+    "description": "NamUs Case Tracker is a Chrome extension that helps you monitor and organize missing persons cases from the National Missing and Unidentified Persons System (NamUs). View case details in a convenient side panel while browsing the NamUs website, save cases of interest, and track updates without leaving your browser. \n\n<a href=\"https://www.flaticon.com/free-icons/magnifier-glass\" title=\"magnifier glass icons\">Magnifier glass icons created by pbig - Flaticon</a>",
+    "permissions": [
+        "sidePanel",
+        "storage",
+        "tabs"
+    ],
+    "host_permissions": [
+        "https://www.namus.gov/*"
+    ],
+    "action": {
+        "default_title": "NamUs Case Tracker",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "32": "icons/icon32.png",
+            "64": "icons/icon64.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "64": "icons/icon64.png",
+        "128": "icons/icon128.png"
+    },
+    "side_panel": {
+        "default_path": "sidepanel/index.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.namus.gov/*"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "icons/*"
+            ],
+            "matches": [
+                "https://www.namus.gov/*"
+            ]
+        }
+    ]
+}

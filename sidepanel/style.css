@@ -1,0 +1,267 @@
+/* Side Panel Styles */
+:root {
+    --primary-color: #4285f4;
+    --secondary-color: #34a853;
+    --danger-color: #ea4335;
+    --text-color: #202124;
+    --light-text: #5f6368;
+    --border-color: #dadce0;
+    --background-color: #f8f9fa;
+    --card-background: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 14px;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.container {
+    padding: 16px;
+    max-width: 100%;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+h1 {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab {
+    padding: 8px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.tab.active {
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.case-card {
+    background-color: var(--card-background);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.case-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.case-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.case-subtitle {
+    color: var(--light-text);
+    font-size: 14px;
+}
+
+.case-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+}
+
+.case-image.placeholder {
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--light-text);
+}
+
+.case-details {
+    padding: 16px;
+}
+
+.detail-section {
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+}
+
+.detail-item {
+    display: flex;
+    margin-bottom: 4px;
+}
+
+.detail-label {
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.detail-value {
+    flex: 1;
+}
+
+.case-actions {
+    padding: 8px 16px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.btn+.btn {
+    margin-left: 8px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--light-text);
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.tracked-case-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.tracked-case-item:hover {
+    background-color: rgba(66, 133, 244, 0.1);
+}
+
+.tracked-case-item.active {
+    background-color: rgba(66, 133, 244, 0.2);
+}
+
+.case-item-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    margin-right: 12px;
+    object-fit: cover;
+}
+
+.case-item-image.placeholder {
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--light-text);
+    font-size: 24px;
+}
+
+.case-item-details {
+    flex: 1;
+}
+
+.case-item-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.case-item-subtitle {
+    color: var(--light-text);
+    font-size: 12px;
+}
+
+.case-item-actions {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.tracked-case-item:hover .case-item-actions {
+    opacity: 1;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+}
+
+.spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
