@@ -20,7 +20,6 @@ function initSidePanel() {
 
     chrome.runtime.onMessage.addListener((message) => {
         if (message.action === 'sidepanelRefresh') {
-            console.log("Received refresh message, reloading data");
             loadCurrentCase();
             loadTrackedCases();
         }

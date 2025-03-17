@@ -263,7 +263,6 @@ function addTrackButton() {
                     caseData
                 }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.error("Error in trackCase message:", chrome.runtime.lastError);
                         return;
                     }
 
