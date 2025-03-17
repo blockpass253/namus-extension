@@ -195,21 +195,64 @@ function addTrackButton() {
         return;
     }
 
+    // Add CSS styles to the document
+    if (!document.getElementById('namus-tracker-styles')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'namus-tracker-styles';
+        styleEl.textContent = `
+            .track-case-button {
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+                cursor: pointer;
+                margin-left: 10px;
+            }
+            .track-case-button.untracked {
+                background-color: #4285f4;
+            }
+            .track-case-button.tracked {
+                background-color: #34A853;
+            }
+        `;
+        document.head.appendChild(styleEl);
+    }
+
     // Create the Track Case button
     const trackButton = document.createElement('button');
     trackButton.id = 'track-case-button';
-    trackButton.className = 'track-case-button';
+    trackButton.className = 'track-case-button untracked';
     trackButton.textContent = 'Track Case';
-    trackButton.style.cssText = `
-    background-color: #4285f4;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-left: 10px;
-  `;
+
+    const currentCaseId = extractCaseId();
+
+    // Function to update button state
+    const updateButtonState = () => {
+        if (currentCaseId) {
+            chrome.runtime.sendMessage({ action: 'getTrackedCases' }, (response) => {
+                if (response && response.cases) {
+                    const isTracked = response.cases.some(c => c.caseId === currentCaseId);
+                    if (isTracked) {
+                        trackButton.textContent = 'Case Tracked';
+                        trackButton.className = 'track-case-button tracked';
+                    } else {
+                        trackButton.textContent = 'Track Case';
+                        trackButton.className = 'track-case-button untracked';
+                    }
+                }
+            });
+        }
+    };
+
+    // Initial state check
+    updateButtonState();
+
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'local' && changes.trackedCases) {
+            updateButtonState();
+        }
+    });
 
     trackButton.addEventListener('click', () => {
         const caseData = extractCaseData();
@@ -226,6 +269,7 @@ function addTrackButton() {
 
                     if (response && response.success) {
                         trackButton.textContent = 'Case Tracked';
+                        trackButton.className = 'track-case-button tracked';
 
                         chrome.runtime.sendMessage({
                             action: 'openSidePanel'
