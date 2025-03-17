@@ -92,6 +92,7 @@ function renderCurrentCase() {
       <div class="case-details">
         ${renderCaseDetails(currentCase.details)}
       </div>
+      ${renderAttachments(currentCase.attachments)}
       <div class="case-actions">
         <a href="${currentCase.url}" target="_blank" class="btn btn-primary">View on NamUs</a>
         <button id="remove-case-btn" class="btn btn-danger">Remove from Tracked</button>
@@ -163,6 +164,51 @@ function renderCaseDetails(details) {
     return detailsHtml;
 }
 
+// Render attachments
+function renderAttachments(attachments) {
+    if (!attachments || attachments.length === 0) {
+        return '';
+    }
+
+    let attachmentsHtml = `
+    <div class="detail-section">
+      <div class="section-title">Attachments</div>
+      <div class="attachments-grid">
+    `;
+
+    attachments.forEach(attachment => {
+        attachmentsHtml += `
+        <div class="attachment-item">
+          <a href="${attachment.originalUrl}" target="_blank" class="attachment-link">
+            <div class="attachment-thumbnail">
+              ${attachment.thumbnailUrl ?
+                `<img src="${attachment.thumbnailUrl}" alt="${attachment.title || 'Case attachment'}">` :
+                `<div class="placeholder">No Preview</div>`
+            }
+            </div>
+            <div class="attachment-info">
+              <div class="attachment-category">${attachment.category || 'Attachment'}</div>
+              ${attachment.title ? `<div class="attachment-title">${attachment.title}</div>` : ''}
+              ${attachment.uploadDate ? `<div class="attachment-date">${attachment.uploadDate}</div>` : ''}
+            </div>
+          </a>
+          ${attachment.downloadUrl ?
+                `<a href="${attachment.downloadUrl}" class="download-button" title="Download" target="_blank">
+              <span class="download-icon">⬇️</span>
+            </a>` : ''
+            }
+        </div>
+      `;
+    });
+
+    attachmentsHtml += `
+      </div>
+    </div>
+    `;
+
+    return attachmentsHtml;
+}
+
 // Render empty state for current case
 function renderEmptyCurrentCase() {
     currentCaseContainer.innerHTML = `
@@ -184,6 +230,7 @@ function renderTrackedCases() {
 
     trackedCases.forEach(caseData => {
         const isActive = currentCase && currentCase.caseId === caseData.caseId;
+        const hasAttachments = caseData.attachments && caseData.attachments.length > 0;
 
         casesHtml += `
       <div class="tracked-case-item ${isActive ? 'active' : ''}" data-case-id="${caseData.caseId}">
@@ -194,6 +241,7 @@ function renderTrackedCases() {
         <div class="case-item-details">
           <div class="case-item-title">${caseData.caseName}</div>
           <div class="case-item-subtitle">${caseData.caseType} | Tracked: ${formatDate(caseData.dateTracked)}</div>
+          ${hasAttachments ? `<div class="attachment-indicator">📎 ${caseData.attachments.length} attachment${caseData.attachments.length !== 1 ? 's' : ''}</div>` : ''}
         </div>
         <div class="case-item-actions">
           <button class="btn btn-danger remove-tracked-case" data-case-id="${caseData.caseId}">✕</button>

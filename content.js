@@ -75,6 +75,90 @@ function extractCaseData() {
         });
     });
 
+    // Get all attachments - first check visible attachments
+    let attachments = [];
+    const attachmentCards = document.querySelectorAll('.attachment-card');
+
+    attachmentCards.forEach(card => {
+        const categoryElement = card.querySelector('.attachment-category');
+        const category = categoryElement ? categoryElement.textContent.trim() : '';
+
+        const dateElement = card.querySelector('.attachment-date');
+        const uploadDate = dateElement ? dateElement.textContent.replace('Subido:', '').trim() : '';
+
+        const titleElement = card.querySelector('.attachment-title');
+        const title = titleElement ? titleElement.textContent.trim() : '';
+
+        const captionElement = card.querySelector('.attachment-caption');
+        const caption = captionElement ? captionElement.textContent.trim() : '';
+
+        let thumbnailUrl = '';
+        let originalUrl = '';
+        let downloadUrl = '';
+
+        const imgElement = card.querySelector('.attachment-image img');
+        if (imgElement && imgElement.src) {
+            thumbnailUrl = imgElement.src;
+        }
+
+        const originalLink = card.querySelector('.attachment-display a');
+        if (originalLink && originalLink.href) {
+            originalUrl = originalLink.href;
+        }
+
+        const downloadLink = card.querySelector('.download-link');
+        if (downloadLink && downloadLink.href) {
+            downloadUrl = downloadLink.href;
+        }
+
+        // Only add attachments that have at least an image
+        if (thumbnailUrl || originalUrl) {
+            attachments.push({
+                category,
+                uploadDate,
+                title,
+                caption: caption === '--' ? '' : caption,
+                thumbnailUrl,
+                originalUrl,
+                downloadUrl
+            });
+        }
+    });
+
+    // Investigations
+    const investigationsContainer = document.querySelector('.container.ng-hide[ng-show="vm.isCurrentPage(\'investigations\')"]');
+    if (investigationsContainer) {
+        const attachmentCards = investigationsContainer.querySelectorAll('.slide-item-container');
+
+        attachmentCards.forEach(card => {
+            let thumbnailUrl = '';
+            let originalUrl = '';
+
+            const imgElement = card.querySelector('img');
+            if (imgElement && imgElement.src) {
+                thumbnailUrl = imgElement.src;
+            }
+
+            const linkElement = card.querySelector('a');
+            if (linkElement && linkElement.href) {
+                originalUrl = linkElement.href;
+            }
+
+            // Only add attachments that have at least an image
+            if (thumbnailUrl || originalUrl) {
+                attachments.push({
+                    category: 'Investigation',
+                    uploadDate: '',
+                    title: 'Investigation Image',
+                    caption: '',
+                    thumbnailUrl,
+                    originalUrl,
+                    downloadUrl: ''
+                });
+            }
+        });
+    }
+
     // Get case image if available
     let imageUrl = '';
     const imageElement = document.querySelector('.case-summary-image-frame img');
@@ -88,6 +172,7 @@ function extractCaseData() {
         caseName,
         details,
         imageUrl,
+        attachments,
         url: window.location.href,
         dateTracked: new Date().toISOString()
     };
@@ -129,9 +214,7 @@ function addTrackButton() {
     trackButton.addEventListener('click', () => {
         const caseData = extractCaseData();
         if (caseData) {
-            // First track the case, then open the side panel
             try {
-                // First track the case
                 chrome.runtime.sendMessage({
                     action: 'trackCase',
                     caseData
@@ -142,14 +225,11 @@ function addTrackButton() {
                     }
 
                     if (response && response.success) {
-                        // Update button state
                         trackButton.textContent = 'Case Tracked';
 
-                        // Then open the side panel after successful tracking
                         chrome.runtime.sendMessage({
                             action: 'openSidePanel'
                         }, () => {
-                            // Send a message to refresh the side panel
                             chrome.runtime.sendMessage({
                                 action: 'refreshSidePanel'
                             }, (refreshResponse) => {
