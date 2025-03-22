@@ -5,7 +5,8 @@
   "main": "background.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "mkdir -p dist && cp -r manifest.json background.js content.js sidepanel icons dist/",
+    "build": "mkdir -p dist && cp -r manifest.json sidepanel icons dist/ && npm run minify",
+    "minify": "terser background.js -c passes=2 -m -o dist/background.js && terser content.js -c passes=2 -m -o dist/content.js",
     "zip": "cd dist && zip -r ../namus-extension.zip *"
   },
   "repository": {
@@ -23,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/blockpass253/namus-extension/issues"
   },
-  "homepage": "https://github.com/blockpass253/namus-extension#readme"
+  "homepage": "https://github.com/blockpass253/namus-extension#readme",
+  "devDependencies": {
+    "terser": "^5.39.0"
+  }
 }
