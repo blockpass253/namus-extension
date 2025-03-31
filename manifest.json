@@ -5,8 +5,7 @@
     "description": "Monitor and organize missing persons cases from NamUs. View case details in a side panel, save cases of interest, and track updates.",
     "permissions": [
         "sidePanel",
-        "storage",
-        "tabs"
+        "storage"
     ],
     "host_permissions": [
         "https://www.namus.gov/*"
