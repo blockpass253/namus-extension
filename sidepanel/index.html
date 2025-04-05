@@ -13,6 +13,7 @@
     <div class="container">
         <header>
             <h1>NamUs Case Tracker</h1>
+            <div id="settings-icon" class="settings-icon">⚙️</div>
         </header>
 
         <div class="tabs">
@@ -21,14 +22,26 @@
         </div>
 
         <div id="current-case-content" class="tab-content active">
-            <div id="current-case-container">
-                <!-- Current case content will be loaded here -->
-            </div>
+            <div id="current-case-container"></div>
         </div>
 
         <div id="tracked-cases-content" class="tab-content">
-            <div id="tracked-cases-list">
-                <!-- Tracked cases list will be loaded here -->
+            <div id="tracked-cases-list"></div>
+            </div>
+        
+        <div id="settings-panel" class="settings-panel">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <div id="close-settings" class="close-settings">✕</div>
+            </div>
+            <div class="settings-content">
+                <div class="feature-toggle">
+                    <div class="toggle-label">Blur unidentified images</div>
+                    <label class="switch">
+                        <input type="checkbox" id="feature-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
             </div>
         </div>
     </div>

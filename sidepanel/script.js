@@ -6,14 +6,26 @@ const currentCaseContent = document.getElementById('current-case-content');
 const trackedCasesContent = document.getElementById('tracked-cases-content');
 const currentCaseContainer = document.getElementById('current-case-container');
 const trackedCasesList = document.getElementById('tracked-cases-list');
+const featureToggle = document.getElementById('feature-toggle');
+const settingsIcon = document.getElementById('settings-icon');
+const settingsPanel = document.getElementById('settings-panel');
+const closeSettings = document.getElementById('close-settings');
 
 // State
 let currentCase = null;
 let trackedCases = [];
+let featureEnabled = false;
 
 function initSidePanel() {
     currentCaseTab.addEventListener('click', () => switchTab('current'));
     trackedCasesTab.addEventListener('click', () => switchTab('tracked'));
+
+    settingsIcon.addEventListener('click', openSettings);
+    closeSettings.addEventListener('click', closeSettingsPanel);
+
+    featureToggle.addEventListener('change', handleFeatureToggle);
+
+    loadSettings();
 
     loadCurrentCase();
     loadTrackedCases();
@@ -40,7 +52,6 @@ function switchTab(tabName) {
     }
 }
 
-// Load the current case from storage
 function loadCurrentCase() {
     showLoading(currentCaseContainer);
 
@@ -56,7 +67,6 @@ function loadCurrentCase() {
     });
 }
 
-// Load tracked cases from storage
 function loadTrackedCases() {
     showLoading(trackedCasesList);
 
@@ -78,10 +88,13 @@ function renderCurrentCase() {
         return;
     }
 
+    const isUnidentified = currentCase.caseType === 'Unidentified Person';
+    const shouldBlur = featureEnabled && isUnidentified;
+
     const caseHtml = `
     <div class="case-card">
       ${currentCase.imageUrl ?
-            `<img src="${currentCase.imageUrl}" alt="${currentCase.caseName}" class="case-image">` :
+        `<img src="${currentCase.imageUrl}" alt="${currentCase.caseName}" class="case-image${shouldBlur ? ' blurred' : ''}">` :
             `<div class="case-image placeholder">No Image Available</div>`
         }
       <div class="case-header">
@@ -91,7 +104,7 @@ function renderCurrentCase() {
       <div class="case-details">
         ${renderCaseDetails(currentCase.details)}
       </div>
-      ${renderAttachments(currentCase.attachments)}
+      ${renderAttachments(currentCase.attachments, shouldBlur)}
       <div class="case-actions">
         <a href="${currentCase.url}" target="_blank" class="btn btn-primary">View on NamUs</a>
         <button id="clear-case-btn" class="btn btn-secondary">Clear Current Case</button>
@@ -148,7 +161,6 @@ function renderCaseDetails(details) {
     `;
 
         for (const label in details[section]) {
-            // Skip empty values
             if (!details[section][label] || details[section][label].trim() === '') {
                 continue;
             }
@@ -171,8 +183,7 @@ function renderCaseDetails(details) {
     return detailsHtml;
 }
 
-// Render attachments
-function renderAttachments(attachments) {
+function renderAttachments(attachments, shouldBlur) {
     if (!attachments || attachments.length === 0) {
         return '';
     }
@@ -189,7 +200,7 @@ function renderAttachments(attachments) {
           <a href="${attachment.originalUrl}" target="_blank" class="attachment-link">
             <div class="attachment-thumbnail">
               ${attachment.thumbnailUrl ?
-                `<img src="${attachment.thumbnailUrl}" alt="${attachment.title || 'Case attachment'}">` :
+            `<img src="${attachment.thumbnailUrl}" alt="${attachment.title || 'Case attachment'}"${shouldBlur ? ' class="blurred"' : ''}>` :
                 `<div class="placeholder">No Preview</div>`
             }
             </div>
@@ -216,7 +227,6 @@ function renderAttachments(attachments) {
     return attachmentsHtml;
 }
 
-// Render empty state for current case
 function renderEmptyCurrentCase() {
     currentCaseContainer.innerHTML = `
     <div class="empty-state">
@@ -238,11 +248,13 @@ function renderTrackedCases() {
     trackedCases.forEach(caseData => {
         const isActive = currentCase && currentCase.caseId === caseData.caseId;
         const hasAttachments = caseData.attachments && caseData.attachments.length > 0;
+        const isUnidentified = caseData.caseType === 'Unidentified Person';
+        const shouldBlur = featureEnabled && isUnidentified;
 
         casesHtml += `
       <div class="tracked-case-item ${isActive ? 'active' : ''}" data-case-id="${caseData.caseId}">
         ${caseData.imageUrl ?
-                `<img src="${caseData.imageUrl}" alt="${caseData.caseName}" class="case-item-image">` :
+            `<img src="${caseData.imageUrl}" alt="${caseData.caseName}" class="case-item-image${shouldBlur ? ' blurred' : ''}">` :
                 `<div class="case-item-image placeholder">?</div>`
             }
         <div class="case-item-details">
@@ -287,7 +299,6 @@ function renderEmptyTrackedCases() {
   `;
 }
 
-// Select a case from the tracked cases list
 function selectCase(caseId) {
     const selectedCase = trackedCases.find(c => c.caseId === caseId);
 
@@ -310,7 +321,6 @@ function selectCase(caseId) {
 
 function removeCase(caseId) {
     chrome.runtime.sendMessage({ action: 'removeCase', caseId }, () => {
-        // Reload data
         loadCurrentCase();
         loadTrackedCases();
     });
@@ -341,6 +351,33 @@ function clearCurrentCase() {
     chrome.storage.local.set({ currentCase: null }, () => {
         renderEmptyCurrentCase();
     });
+}
+
+function openSettings() {
+    settingsPanel.classList.add('active');
+}
+
+function closeSettingsPanel() {
+    settingsPanel.classList.remove('active');
+}
+
+function loadSettings() {
+    chrome.storage.local.get(['featureEnabled'], (result) => {
+        featureEnabled = result.featureEnabled !== undefined ? result.featureEnabled : true;
+        featureToggle.checked = featureEnabled;
+    });
+}
+
+function saveSettings() {
+    chrome.storage.local.set({ featureEnabled });
+}
+
+function handleFeatureToggle() {
+    featureEnabled = featureToggle.checked;
+    saveSettings();
+    // Re-render cases to apply/unapply blurring
+    loadCurrentCase();
+    loadTrackedCases();
 }
 
 document.addEventListener('DOMContentLoaded', initSidePanel); 
