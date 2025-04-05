@@ -183,6 +183,10 @@ h1 {
     color: white;
 }
 
+.btn-secondary {
+    background-color: #f1f3f4;
+    color: var(--text-color);
+}
 .btn-danger {
     background-color: var(--danger-color);
     color: white;

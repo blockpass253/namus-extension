@@ -94,6 +94,7 @@ function renderCurrentCase() {
       ${renderAttachments(currentCase.attachments)}
       <div class="case-actions">
         <a href="${currentCase.url}" target="_blank" class="btn btn-primary">View on NamUs</a>
+        <button id="clear-case-btn" class="btn btn-secondary">Clear Current Case</button>
         <button id="remove-case-btn" class="btn btn-danger">Remove from Tracked</button>
       </div>
     </div>
@@ -105,6 +106,13 @@ function renderCurrentCase() {
     if (removeButton) {
         removeButton.addEventListener('click', () => {
             removeCase(currentCase.caseId);
+        });
+    }
+
+    const clearButton = document.getElementById('clear-case-btn');
+    if (clearButton) {
+        clearButton.addEventListener('click', () => {
+            clearCurrentCase();
         });
     }
 }
@@ -326,6 +334,13 @@ function hideLoading(container) {
     if (loadingElement) {
         loadingElement.remove();
     }
+}
+
+function clearCurrentCase() {
+    currentCase = null;
+    chrome.storage.local.set({ currentCase: null }, () => {
+        renderEmptyCurrentCase();
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initSidePanel); 
