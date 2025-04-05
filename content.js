@@ -17,6 +17,144 @@ function extractCaseId() {
     return null;
 }
 
+function navigateToAttachmentsTabAndExtract() {
+    return new Promise((resolve) => {
+        const attachmentsTabLink = Array.from(document.querySelectorAll('.menu-text a')).find(
+            link => link.textContent.includes('Images & Documents')
+        );
+
+        if (!attachmentsTabLink) {
+            console.log('Attachments tab not found');
+            resolve([]);
+            return;
+        }
+
+        const isAlreadyOnAttachmentsTab = attachmentsTabLink.classList.contains('tab-active');
+        const currentActiveTab = document.querySelector('.menu-text a.tab-active');
+        const currentTabText = currentActiveTab ? currentActiveTab.textContent.trim() : '';
+
+        if (!isAlreadyOnAttachmentsTab) {
+            attachmentsTabLink.click();
+
+            waitForAttachmentsContent()
+                .then(attachments => {
+                    // Return to the original tab
+                    if (currentTabText) {
+                        const originalTabLink = Array.from(document.querySelectorAll('.menu-text a')).find(
+                            link => link.textContent.trim() === currentTabText
+                        );
+
+                        if (originalTabLink) {
+                            originalTabLink.click();
+                        }
+                    }
+
+                    resolve(attachments);
+                })
+                .catch(error => {
+                    console.error("Error waiting for attachments content:", error);
+                    resolve([]);
+                });
+        } else {
+            // We're already on the attachments tab, just extract the content
+            const attachments = extractAttachmentsContent();
+            resolve(attachments);
+        }
+    });
+}
+
+// Function to wait for attachments content to be loaded
+function waitForAttachmentsContent() {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        const timeout = 5000;
+
+        const checkAttachmentsLoaded = () => {
+            const attachmentsContainer = document.querySelector('div.content-container[ng-controller="Attachments as subSection"]');
+            if (attachmentsContainer) {
+                const attachmentCards = attachmentsContainer.querySelectorAll('.attachment-card');
+                const hasAttachmentCards = attachmentCards.length > 0;
+
+                const hasNoAttachmentsMessage = attachmentsContainer.querySelector('.no-attachments-message') !== null;
+                const isAttachmentsTabActive = document.querySelector('.menu-text a[ng-click="vm.goToPage(\'attachments\')"].tab-active') !== null;
+
+                // If the tab is active and either has cards or a "no attachments" message, content is loaded
+                if (isAttachmentsTabActive && (hasAttachmentCards || hasNoAttachmentsMessage)) {
+                    console.log("Attachments content is loaded, extracting data");
+                    const attachments = extractAttachmentsContent();
+                    resolve(attachments);
+                    return;
+                }
+            }
+
+            if (Date.now() - startTime > timeout) {
+                console.error(`Attachments content not loaded within ${timeout}ms`);
+                reject(new Error(`Attachments content not loaded within ${timeout}ms`));
+                return;
+            }
+
+            // Check again after a short delay
+            setTimeout(checkAttachmentsLoaded, 100);
+        };
+
+        checkAttachmentsLoaded();
+    });
+}
+
+function extractAttachmentsContent() {
+    let attachments = [];
+
+    const attachmentCards = document.querySelectorAll('.attachment-card');
+
+    attachmentCards.forEach(card => {
+        const categoryElement = card.querySelector('.attachment-category');
+        const category = categoryElement ? categoryElement.textContent.trim() : '';
+
+        const dateElement = card.querySelector('.attachment-date');
+        const uploadDate = dateElement ? dateElement.textContent.replace('Subido:', '').trim() : '';
+
+        const titleElement = card.querySelector('.attachment-title');
+        const title = titleElement ? titleElement.textContent.trim() : '';
+
+        const captionElement = card.querySelector('.attachment-caption');
+        const caption = captionElement ? captionElement.textContent.trim() : '';
+
+        let thumbnailUrl = '';
+        let originalUrl = '';
+        let downloadUrl = '';
+
+        const imgElement = card.querySelector('.attachment-image img');
+        if (imgElement && imgElement.src) {
+            thumbnailUrl = imgElement.src;
+        }
+
+        const originalLink = card.querySelector('.attachment-display a');
+        if (originalLink && originalLink.href) {
+            originalUrl = originalLink.href;
+        }
+
+        const downloadLink = card.querySelector('.download-link');
+        if (downloadLink && downloadLink.href) {
+            downloadUrl = downloadLink.href;
+        }
+
+        // Only add attachments that have at least an image
+        if (thumbnailUrl || originalUrl) {
+            attachments.push({
+                category,
+                uploadDate,
+                title,
+                caption: caption === '--' ? '' : caption,
+                thumbnailUrl,
+                originalUrl,
+                downloadUrl
+            });
+        }
+    });
+
+    return attachments;
+}
+
 // Function to extract case data from the page
 function extractCaseData() {
     const caseId = extractCaseId();
@@ -254,21 +392,38 @@ function addTrackButton() {
         }
     });
 
-    trackButton.addEventListener('click', () => {
-        const caseData = extractCaseData();
-        if (caseData) {
-            try {
+    trackButton.addEventListener('click', async () => {
+        // Show loading state
+        trackButton.textContent = 'Loading...';
+        trackButton.disabled = true;
+
+        try {
+            // First get the basic case data
+            const caseData = extractCaseData();
+
+            if (caseData) {
+                // Navigate to the Images & Documents tab and extract its content
+                const attachmentsContent = await navigateToAttachmentsTabAndExtract();
+
+                // Update the case data with the attachments content
+                caseData.attachments = attachmentsContent;
+
+                // Send the updated case data to the background script
                 chrome.runtime.sendMessage({
                     action: 'trackCase',
                     caseData
                 }, (response) => {
                     if (chrome.runtime.lastError) {
+                        console.error("Error sending message:", chrome.runtime.lastError);
+                        trackButton.textContent = 'Track Case';
+                        trackButton.disabled = false;
                         return;
                     }
 
                     if (response && response.success) {
                         trackButton.textContent = 'Case Tracked';
                         trackButton.className = 'track-case-button tracked';
+                        trackButton.disabled = false;
 
                         chrome.runtime.sendMessage({
                             action: 'openSidePanel'
@@ -278,11 +433,19 @@ function addTrackButton() {
                             }, (refreshResponse) => {
                             });
                         });
+                    } else {
+                        trackButton.textContent = 'Track Case';
+                        trackButton.disabled = false;
                     }
                 });
-            } catch (error) {
-                console.error("Exception when sending message:", error);
+            } else {
+                trackButton.textContent = 'Track Case';
+                trackButton.disabled = false;
             }
+        } catch (error) {
+            console.error("Exception when processing case data:", error);
+            trackButton.textContent = 'Track Case';
+            trackButton.disabled = false;
         }
     });
 
