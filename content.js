@@ -35,24 +35,69 @@ function navigateToAttachmentsTabAndExtract() {
 
         if (!isAlreadyOnAttachmentsTab) {
             attachmentsTabLink.click();
-            setTimeout(() => {
-                const attachments = extractAttachmentsContent();
-                if (currentTabText) {
-                    const originalTabLink = Array.from(document.querySelectorAll('.menu-text a')).find(
-                        link => link.textContent.trim() === currentTabText
-                    );
 
-                    if (originalTabLink) {
-                        originalTabLink.click();
+            waitForAttachmentsContent()
+                .then(attachments => {
+                    // Return to the original tab
+                    if (currentTabText) {
+                        const originalTabLink = Array.from(document.querySelectorAll('.menu-text a')).find(
+                            link => link.textContent.trim() === currentTabText
+                        );
+
+                        if (originalTabLink) {
+                            originalTabLink.click();
+                        }
                     }
-                }
 
-                resolve(attachments);
-            }, 1000);
+                    resolve(attachments);
+                })
+                .catch(error => {
+                    console.error("Error waiting for attachments content:", error);
+                    resolve([]);
+                });
         } else {
+            // We're already on the attachments tab, just extract the content
             const attachments = extractAttachmentsContent();
             resolve(attachments);
         }
+    });
+}
+
+// Function to wait for attachments content to be loaded
+function waitForAttachmentsContent() {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        const timeout = 5000;
+
+        const checkAttachmentsLoaded = () => {
+            const attachmentsContainer = document.querySelector('div.content-container[ng-controller="Attachments as subSection"]');
+            if (attachmentsContainer) {
+                const attachmentCards = attachmentsContainer.querySelectorAll('.attachment-card');
+                const hasAttachmentCards = attachmentCards.length > 0;
+
+                const hasNoAttachmentsMessage = attachmentsContainer.querySelector('.no-attachments-message') !== null;
+                const isAttachmentsTabActive = document.querySelector('.menu-text a[ng-click="vm.goToPage(\'attachments\')"].tab-active') !== null;
+
+                // If the tab is active and either has cards or a "no attachments" message, content is loaded
+                if (isAttachmentsTabActive && (hasAttachmentCards || hasNoAttachmentsMessage)) {
+                    console.log("Attachments content is loaded, extracting data");
+                    const attachments = extractAttachmentsContent();
+                    resolve(attachments);
+                    return;
+                }
+            }
+
+            if (Date.now() - startTime > timeout) {
+                console.error(`Attachments content not loaded within ${timeout}ms`);
+                reject(new Error(`Attachments content not loaded within ${timeout}ms`));
+                return;
+            }
+
+            // Check again after a short delay
+            setTimeout(checkAttachmentsLoaded, 100);
+        };
+
+        checkAttachmentsLoaded();
     });
 }
 
