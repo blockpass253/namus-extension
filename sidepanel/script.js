@@ -10,6 +10,9 @@ const featureToggle = document.getElementById('feature-toggle');
 const settingsIcon = document.getElementById('settings-icon');
 const settingsPanel = document.getElementById('settings-panel');
 const closeSettings = document.getElementById('close-settings');
+const imageModal = document.getElementById('image-modal');
+const modalImage = document.getElementById('modal-image');
+const closeModal = document.querySelector('.close-modal');
 
 // State
 let currentCase = null;
@@ -24,6 +27,14 @@ function initSidePanel() {
     closeSettings.addEventListener('click', closeSettingsPanel);
 
     featureToggle.addEventListener('change', handleFeatureToggle);
+
+    // Modal event listeners
+    closeModal.addEventListener('click', closeImageModal);
+    window.addEventListener('click', (event) => {
+        if (event.target === imageModal) {
+            closeImageModal();
+        }
+    });
 
     loadSettings();
 
@@ -115,6 +126,15 @@ function renderCurrentCase() {
 
     currentCaseContainer.innerHTML = caseHtml;
 
+    document.querySelectorAll('.attachment-thumbnail').forEach(thumbnail => {
+        thumbnail.addEventListener('click', (e) => {
+            const imageUrl = thumbnail.dataset.imageUrl;
+            if (imageUrl) {
+                openImageModal(imageUrl);
+            }
+        });
+    });
+
     const removeButton = document.getElementById('remove-case-btn');
     if (removeButton) {
         removeButton.addEventListener('click', () => {
@@ -197,19 +217,19 @@ function renderAttachments(attachments, shouldBlur) {
     attachments.forEach(attachment => {
         attachmentsHtml += `
         <div class="attachment-item">
-          <a href="${attachment.originalUrl}" target="_blank" class="attachment-link">
-            <div class="attachment-thumbnail">
-              ${attachment.thumbnailUrl ?
+          <div class="attachment-thumbnail" data-image-url="${attachment.originalUrl}">
+            ${attachment.thumbnailUrl ?
             `<img src="${attachment.thumbnailUrl}" alt="${attachment.title || 'Case attachment'}"${shouldBlur ? ' class="blurred"' : ''}>` :
                 `<div class="placeholder">No Preview</div>`
             }
-            </div>
-            <div class="attachment-info">
+          </div>
+          <div class="attachment-info">
+            <a href="${attachment.originalUrl}" target="_blank" class="attachment-link">
               <div class="attachment-category">${attachment.category || 'Attachment'}</div>
               ${attachment.title ? `<div class="attachment-title">${attachment.title}</div>` : ''}
               ${attachment.uploadDate ? `<div class="attachment-date">${attachment.uploadDate}</div>` : ''}
-            </div>
-          </a>
+            </a>
+          </div>
           ${attachment.downloadUrl ?
                 `<a href="${attachment.downloadUrl}" class="download-button" title="Download" target="_blank">
               <span class="download-icon">⬇️</span>
@@ -378,6 +398,17 @@ function handleFeatureToggle() {
     // Re-render cases to apply/unapply blurring
     loadCurrentCase();
     loadTrackedCases();
+}
+
+function openImageModal(imageUrl) {
+    modalImage.src = imageUrl;
+    imageModal.style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+}
+
+function closeImageModal() {
+    imageModal.style.display = 'none';
+    document.body.style.overflow = 'auto'; // Restore scrolling
 }
 
 document.addEventListener('DOMContentLoaded', initSidePanel); 
