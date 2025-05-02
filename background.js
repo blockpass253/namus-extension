@@ -3,7 +3,8 @@
 chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.set({
         trackedCases: [],
-        currentCase: null
+        currentCase: null,
+        folders: []
     });
 });
 
@@ -30,8 +31,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
 
         case 'refreshSidePanel':
-            chrome.runtime.sendMessage({ action: 'sidepanelRefresh' });
-            sendResponse({ success: true, message: "Refresh message sent" });
+            try {
+                chrome.runtime.sendMessage({ action: 'sidepanelRefresh' })
+                    .catch(error => {
+                        console.log('Side panel not ready:', error);
+                    });
+                sendResponse({ success: true, message: "Refresh message sent" });
+            } catch (error) {
+                console.log('Error sending refresh message:', error);
+                sendResponse({ success: false, message: "Error sending refresh message" });
+            }
             return true;
 
         case 'trackCase':
@@ -75,7 +84,9 @@ function storeCase(caseData, callback = () => { }) {
             trackedCases[existingCaseIndex] = caseData;
         }
 
-        chrome.storage.local.set({ trackedCases }, callback);
+        chrome.storage.local.set({ trackedCases }, () => {
+            callback();
+        });
     });
 }
 

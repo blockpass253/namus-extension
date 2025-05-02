@@ -24,7 +24,6 @@ function navigateToAttachmentsTabAndExtract() {
         );
 
         if (!attachmentsTabLink) {
-            console.log('Attachments tab not found');
             resolve([]);
             return;
         }
@@ -80,7 +79,6 @@ function waitForAttachmentsContent() {
 
                 // If the tab is active and either has cards or a "no attachments" message, content is loaded
                 if (isAttachmentsTabActive && (hasAttachmentCards || hasNoAttachmentsMessage)) {
-                    console.log("Attachments content is loaded, extracting data");
                     const attachments = extractAttachmentsContent();
                     resolve(attachments);
                     return;
@@ -397,7 +395,7 @@ function addTrackButton() {
         trackButton.textContent = 'Loading...';
         trackButton.disabled = true;
 
-        try {
+        try {      
             // First get the basic case data
             const caseData = extractCaseData();
 
@@ -412,7 +410,7 @@ function addTrackButton() {
                 chrome.runtime.sendMessage({
                     action: 'trackCase',
                     caseData
-                }, (response) => {
+                }, (response) => {                    
                     if (chrome.runtime.lastError) {
                         console.error("Error sending message:", chrome.runtime.lastError);
                         trackButton.textContent = 'Track Case';
@@ -427,11 +425,13 @@ function addTrackButton() {
 
                         chrome.runtime.sendMessage({
                             action: 'openSidePanel'
-                        }, () => {
-                            chrome.runtime.sendMessage({
-                                action: 'refreshSidePanel'
-                            }, (refreshResponse) => {
-                            });
+                        }, (openResponse) => {
+                            if (openResponse && openResponse.success) {
+                                chrome.runtime.sendMessage({
+                                    action: 'refreshSidePanel'
+                                }, (refreshResponse) => {
+                                });
+                            }
                         });
                     } else {
                         trackButton.textContent = 'Track Case';
@@ -439,6 +439,7 @@ function addTrackButton() {
                     }
                 });
             } else {
+                console.error('Failed to extract case data');
                 trackButton.textContent = 'Track Case';
                 trackButton.disabled = false;
             }

@@ -27,7 +27,11 @@
 
         <div id="tracked-cases-content" class="tab-content">
             <div id="tracked-cases-list"></div>
-            </div>
+            <button id="create-folder-btn" class="fab" title="Create new folder">
+                <span class="fab-icon">📁</span>
+                <span class="fab-tooltip">Create new folder</span>
+            </button>
+        </div>
         
         <div id="settings-panel" class="settings-panel">
             <div class="settings-header">
@@ -50,6 +54,22 @@
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <img id="modal-image" src="" alt="Full size image">
+        </div>
+    </div>
+
+    <div id="folder-modal" class="folder-modal">
+        <div class="folder-modal-content">
+            <div class="folder-modal-header">
+                <div class="folder-modal-title">Create New Folder</div>
+                <div class="folder-modal-close">&times;</div>
+            </div>
+            <form class="folder-modal-form">
+                <input type="text" class="folder-modal-input" placeholder="Folder name" required>
+                <div class="folder-modal-buttons">
+                    <button type="button" class="btn btn-secondary folder-modal-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
         </div>
     </div>
 

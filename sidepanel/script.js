@@ -17,7 +17,16 @@ const closeModal = document.querySelector('.close-modal');
 // State
 let currentCase = null;
 let trackedCases = [];
+let folders = [];
 let featureEnabled = false;
+
+// DOM Elements
+const createFolderBtn = document.getElementById('create-folder-btn');
+const folderModal = document.getElementById('folder-modal');
+const folderModalClose = document.querySelector('.folder-modal-close');
+const folderModalCancel = document.querySelector('.folder-modal-cancel');
+const folderModalForm = document.querySelector('.folder-modal-form');
+const folderNameInput = document.querySelector('.folder-modal-input');
 
 function initSidePanel() {
     currentCaseTab.addEventListener('click', () => switchTab('current'));
@@ -28,16 +37,30 @@ function initSidePanel() {
 
     featureToggle.addEventListener('change', handleFeatureToggle);
 
+    // Folder-related event listeners
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('#create-folder-btn')) {
+            openFolderModal();
+        }
+    });
+
+    folderModalClose.addEventListener('click', closeFolderModal);
+    folderModalCancel.addEventListener('click', closeFolderModal);
+    folderModalForm.addEventListener('submit', handleCreateFolder);
+
     // Modal event listeners
     closeModal.addEventListener('click', closeImageModal);
     window.addEventListener('click', (event) => {
         if (event.target === imageModal) {
             closeImageModal();
         }
+        if (event.target === folderModal) {
+            closeFolderModal();
+        }
     });
 
     loadSettings();
-
+    loadFolders();
     loadCurrentCase();
     loadTrackedCases();
 
@@ -258,39 +281,59 @@ function renderEmptyCurrentCase() {
 }
 
 function renderTrackedCases() {
-    if (!trackedCases || trackedCases.length === 0) {
+    if ((!trackedCases || trackedCases.length === 0) && (!folders || folders.length === 0)) {
         renderEmptyTrackedCases();
         return;
     }
 
     let casesHtml = '';
 
-    trackedCases.forEach(caseData => {
-        const isActive = currentCase && currentCase.caseId === caseData.caseId;
-        const hasAttachments = caseData.attachments && caseData.attachments.length > 0;
-        const isUnidentified = caseData.caseType === 'Unidentified Person';
-        const shouldBlur = featureEnabled && isUnidentified;
-
+    // Render folders
+    folders.forEach(folder => {
         casesHtml += `
-      <div class="tracked-case-item ${isActive ? 'active' : ''}" data-case-id="${caseData.caseId}">
-        ${caseData.imageUrl ?
-            `<img src="${caseData.imageUrl}" alt="${caseData.caseName}" class="case-item-image${shouldBlur ? ' blurred' : ''}">` :
-                `<div class="case-item-image placeholder">?</div>`
-            }
-        <div class="case-item-details">
-          <div class="case-item-title">${caseData.caseName}</div>
-          <div class="case-item-subtitle">${caseData.caseType} | Tracked: ${formatDate(caseData.dateTracked)}</div>
-          ${hasAttachments ? `<div class="attachment-indicator">📎 ${caseData.attachments.length} attachment${caseData.attachments.length !== 1 ? 's' : ''}</div>` : ''}
-        </div>
-        <div class="case-item-actions">
-          <button class="btn btn-danger remove-tracked-case" data-case-id="${caseData.caseId}">✕</button>
-        </div>
-      </div>
-    `;
+            <div class="folder-item" data-folder-id="${folder.id}">
+                <div class="folder-icon">📁</div>
+                <div class="folder-name">${folder.name}</div>
+                <div class="folder-actions">
+                    <button class="btn btn-danger remove-folder" data-folder-id="${folder.id}">✕</button>
+                </div>
+            </div>
+            <div class="folder-contents" data-folder-id="${folder.id}">
+                ${renderCasesInFolder(folder.cases)}
+            </div>
+        `;
+    });
+
+    // Render cases not in folders
+    const casesNotInFolders = trackedCases.filter(caseData => 
+        !folders.some(folder => folder.cases.includes(caseData.caseId))
+    );
+
+    casesNotInFolders.forEach(caseData => {
+        casesHtml += renderCaseItem(caseData);
     });
 
     trackedCasesList.innerHTML = casesHtml;
 
+    // Add event listeners for folders
+    document.querySelectorAll('.folder-item').forEach(folder => {
+        folder.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('remove-folder')) {
+                const folderId = folder.dataset.folderId;
+                toggleFolder(folderId);
+            }
+        });
+    });
+
+    document.querySelectorAll('.remove-folder').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const folderId = button.dataset.folderId;
+            removeFolder(folderId);
+        });
+    });
+
+    // Add event listeners for cases
     document.querySelectorAll('.tracked-case-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (!e.target.classList.contains('remove-tracked-case')) {
@@ -298,6 +341,17 @@ function renderTrackedCases() {
                 selectCase(caseId);
             }
         });
+
+        // Add drag and drop functionality
+        item.setAttribute('draggable', true);
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+    });
+
+    // Add drop zones for folders
+    document.querySelectorAll('.folder-item').forEach(folder => {
+        folder.addEventListener('dragover', handleDragOver);
+        folder.addEventListener('drop', handleDrop);
     });
 
     document.querySelectorAll('.remove-tracked-case').forEach(button => {
@@ -309,14 +363,88 @@ function renderTrackedCases() {
     });
 }
 
-function renderEmptyTrackedCases() {
-    trackedCasesList.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-state-icon">🔍</div>
-      <p>No cases tracked yet</p>
-      <p>Visit NamUs case pages and click "Track Case" to add them here</p>
-    </div>
-  `;
+function renderCasesInFolder(caseIds) {
+    if (!caseIds || caseIds.length === 0) {
+        return '<div class="empty-folder">No cases in this folder</div>';
+    }
+
+    let casesHtml = '';
+    caseIds.forEach(caseId => {
+        const caseData = trackedCases.find(c => c.caseId === caseId);
+        if (caseData) {
+            casesHtml += renderCaseItem(caseData);
+        }
+    });
+    return casesHtml;
+}
+
+function renderCaseItem(caseData) {
+    const isActive = currentCase && currentCase.caseId === caseData.caseId;
+    const hasAttachments = caseData.attachments && caseData.attachments.length > 0;
+    const isUnidentified = caseData.caseType === 'Unidentified Person';
+    const shouldBlur = featureEnabled && isUnidentified;
+
+    return `
+        <div class="tracked-case-item ${isActive ? 'active' : ''}" data-case-id="${caseData.caseId}">
+            ${caseData.imageUrl ?
+                `<img src="${caseData.imageUrl}" alt="${caseData.caseName}" class="case-item-image${shouldBlur ? ' blurred' : ''}">` :
+                `<div class="case-item-image placeholder">?</div>`
+            }
+            <div class="case-item-details">
+                <div class="case-item-title">${caseData.caseName}</div>
+                <div class="case-item-subtitle">${caseData.caseType} | Tracked: ${formatDate(caseData.dateTracked)}</div>
+                ${hasAttachments ? `<div class="attachment-indicator">📎 ${caseData.attachments.length} attachment${caseData.attachments.length !== 1 ? 's' : ''}</div>` : ''}
+            </div>
+            <div class="case-item-actions">
+                <button class="btn btn-danger remove-tracked-case" data-case-id="${caseData.caseId}">✕</button>
+            </div>
+        </div>
+    `;
+}
+
+function toggleFolder(folderId) {
+    const folderContents = document.querySelector(`.folder-contents[data-folder-id="${folderId}"]`);
+    if (folderContents) {
+        folderContents.style.display = folderContents.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function removeFolder(folderId) {
+    folders = folders.filter(folder => folder.id !== folderId);
+    chrome.storage.local.set({ folders }, () => {
+        renderTrackedCases();
+    });
+}
+
+// Drag and drop handlers
+function handleDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', e.target.dataset.caseId);
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    const caseId = e.dataTransfer.getData('text/plain');
+    const folderId = e.currentTarget.dataset.folderId;
+    
+    const folder = folders.find(f => f.id === folderId);
+    if (folder && !folder.cases.includes(caseId)) {
+        folder.cases.push(caseId);
+        chrome.storage.local.set({ folders }, () => {
+            renderTrackedCases();
+        });
+    }
 }
 
 function selectCase(caseId) {
@@ -409,6 +537,50 @@ function openImageModal(imageUrl) {
 function closeImageModal() {
     imageModal.style.display = 'none';
     document.body.style.overflow = 'auto'; // Restore scrolling
+}
+
+function loadFolders() {
+    chrome.storage.local.get(['folders'], (result) => {
+        folders = result.folders || [];
+    });
+}
+
+function openFolderModal() {
+    folderModal.style.display = 'block';
+    folderNameInput.value = '';
+    folderNameInput.focus();
+}
+
+function closeFolderModal() {
+    folderModal.style.display = 'none';
+}
+
+function handleCreateFolder(e) {
+    e.preventDefault();
+    const folderName = folderNameInput.value.trim();
+    if (!folderName) return;
+
+    const newFolder = {
+        id: Date.now().toString(),
+        name: folderName,
+        cases: []
+    };
+
+    folders.push(newFolder);
+    chrome.storage.local.set({ folders }, () => {
+        closeFolderModal();
+        renderTrackedCases();
+    });
+}
+
+function renderEmptyTrackedCases() {
+    trackedCasesList.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-state-icon">🔍</div>
+      <p>No cases tracked yet</p>
+      <p>Visit NamUs case pages and click "Track Case" to add them here</p>
+    </div>
+  `;
 }
 
 document.addEventListener('DOMContentLoaded', initSidePanel); 
