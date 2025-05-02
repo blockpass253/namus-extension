@@ -176,7 +176,7 @@ function renderCurrentCase() {
     const removeButton = document.getElementById('remove-case-btn');
     if (removeButton) {
         removeButton.addEventListener('click', () => {
-            removeCase(currentCase.caseId);
+            openConfirmationModal('case', currentCase);
         });
     }
 
@@ -370,6 +370,14 @@ function renderTrackedCases() {
         item.setAttribute('draggable', true);
         item.addEventListener('dragstart', handleDragStart);
         item.addEventListener('dragend', handleDragEnd);
+    });
+
+    document.querySelectorAll(".delete-case-btn").forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const caseData = button.closest('.tracked-case-item').dataset;
+            openConfirmationModal('case', caseData);
+        });
     });
 }
 
