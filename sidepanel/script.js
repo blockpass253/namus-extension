@@ -122,11 +122,10 @@ function loadTrackedCases() {
     chrome.runtime.sendMessage({ action: 'getTrackedCases' }, (response) => {
         hideLoading(trackedCasesList);
 
-        if (response && response.cases && response.cases.length > 0) {
-            trackedCases = response.cases;
+        if (response) {
+            trackedCases = response.cases || [];
+            folders = response.folders || [];
             renderTrackedCases();
-        } else {
-            renderEmptyTrackedCases();
         }
     });
 }

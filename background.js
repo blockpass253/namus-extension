@@ -52,8 +52,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
 
         case 'getTrackedCases':
-            chrome.storage.local.get(['trackedCases'], (result) => {
-                sendResponse({ cases: result.trackedCases || [] });
+            chrome.storage.local.get(['trackedCases', 'folders'], (result) => {
+                sendResponse({ cases: result.trackedCases || [], folders: result.folders || [] });
             });
             return true;
 
