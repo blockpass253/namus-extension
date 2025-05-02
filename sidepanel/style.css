@@ -699,6 +699,68 @@ input:checked+.slider:before {
     margin-top: 16px;
 }
 
+.confirmation-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.confirmation-modal-content {
+    position: relative;
+    background-color: var(--card-background);
+    margin: 15% auto;
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.confirmation-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.confirmation-modal-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.confirmation-modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--light-text);
+}
+
+.confirmation-modal-close:hover {
+    color: var(--text-color);
+}
+
+.confirmation-modal-body {
+    margin-bottom: 16px;
+}
+
+.confirmation-modal-body p {
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.confirmation-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 /* FAB (Floating Action Button) Styles */
 .fab {
     position: fixed;

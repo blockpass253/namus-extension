@@ -28,6 +28,13 @@ const folderModalCancel = document.querySelector('.folder-modal-cancel');
 const folderModalForm = document.querySelector('.folder-modal-form');
 const folderNameInput = document.querySelector('.folder-modal-input');
 
+// Confirmation Modal Elements
+const confirmationModal = document.getElementById('confirmation-modal');
+const confirmationModalClose = document.querySelector('.confirmation-modal-close');
+const confirmationModalCancel = document.querySelector('.confirmation-modal-cancel');
+const confirmationModalConfirm = document.querySelector('.confirmation-modal-confirm');
+const confirmationMessage = document.getElementById('confirmation-message');
+
 function initSidePanel() {
     currentCaseTab.addEventListener('click', () => switchTab('current'));
     trackedCasesTab.addEventListener('click', () => switchTab('tracked'));
@@ -48,6 +55,11 @@ function initSidePanel() {
     folderModalCancel.addEventListener('click', closeFolderModal);
     folderModalForm.addEventListener('submit', handleCreateFolder);
 
+    // Confirmation modal event listeners
+    confirmationModalClose.addEventListener('click', closeConfirmationModal);
+    confirmationModalCancel.addEventListener('click', closeConfirmationModal);
+    confirmationModalConfirm.addEventListener('click', handleConfirmation);
+
     // Modal event listeners
     closeModal.addEventListener('click', closeImageModal);
     window.addEventListener('click', (event) => {
@@ -56,6 +68,9 @@ function initSidePanel() {
         }
         if (event.target === folderModal) {
             closeFolderModal();
+        }
+        if (event.target === confirmationModal) {
+            closeConfirmationModal();
         }
     });
 
@@ -295,7 +310,7 @@ function renderTrackedCases() {
                 <div class="folder-icon">📁</div>
                 <div class="folder-name">${folder.name}</div>
                 <div class="folder-actions">
-                    <button class="btn btn-danger remove-folder" data-folder-id="${folder.id}">✕</button>
+                    <button class="btn btn-danger delete-folder-btn" title="Delete folder">✕</button>
                 </div>
             </div>
             <div class="folder-contents" data-folder-id="${folder.id}">
@@ -318,25 +333,34 @@ function renderTrackedCases() {
     // Add event listeners for folders
     document.querySelectorAll('.folder-item').forEach(folder => {
         folder.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('remove-folder')) {
+            if (!e.target.classList.contains('delete-folder-btn')) {
                 const folderId = folder.dataset.folderId;
                 toggleFolder(folderId);
             }
         });
+
+        // Add drag and drop event listeners for folders
+        folder.addEventListener('dragover', handleDragOver);
+        folder.addEventListener('dragleave', handleDragLeave);
+        folder.addEventListener('drop', handleDrop);
     });
 
-    document.querySelectorAll('.remove-folder').forEach(button => {
+    // Add event listeners for delete folder buttons
+    document.querySelectorAll('.delete-folder-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
-            const folderId = button.dataset.folderId;
-            removeFolder(folderId);
+            const folderId = button.closest('.folder-item').dataset.folderId;
+            const folder = folders.find(f => f.id === folderId);
+            if (folder) {
+                openConfirmationModal('folder', folder);
+            }
         });
     });
 
     // Add event listeners for cases
     document.querySelectorAll('.tracked-case-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('remove-tracked-case')) {
+            if (!e.target.classList.contains('delete-case-btn')) {
                 const caseId = item.dataset.caseId;
                 selectCase(caseId);
             }
@@ -346,20 +370,6 @@ function renderTrackedCases() {
         item.setAttribute('draggable', true);
         item.addEventListener('dragstart', handleDragStart);
         item.addEventListener('dragend', handleDragEnd);
-    });
-
-    // Add drop zones for folders
-    document.querySelectorAll('.folder-item').forEach(folder => {
-        folder.addEventListener('dragover', handleDragOver);
-        folder.addEventListener('drop', handleDrop);
-    });
-
-    document.querySelectorAll('.remove-tracked-case').forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const caseId = button.dataset.caseId;
-            removeCase(caseId);
-        });
     });
 }
 
@@ -396,7 +406,7 @@ function renderCaseItem(caseData) {
                 ${hasAttachments ? `<div class="attachment-indicator">📎 ${caseData.attachments.length} attachment${caseData.attachments.length !== 1 ? 's' : ''}</div>` : ''}
             </div>
             <div class="case-item-actions">
-                <button class="btn btn-danger remove-tracked-case" data-case-id="${caseData.caseId}">✕</button>
+                <button class="btn btn-danger delete-case-btn" title="Remove case">✕</button>
             </div>
         </div>
     `;
@@ -410,9 +420,12 @@ function toggleFolder(folderId) {
 }
 
 function removeFolder(folderId) {
-    folders = folders.filter(folder => folder.id !== folderId);
-    chrome.storage.local.set({ folders }, () => {
-        renderTrackedCases();
+    chrome.runtime.sendMessage({ 
+        action: 'removeFolder', 
+        folderId: folderId 
+    }, () => {
+        loadFolders();
+        loadTrackedCases();
     });
 }
 
@@ -431,20 +444,33 @@ function handleDragOver(e) {
     e.currentTarget.classList.add('drag-over');
 }
 
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+}
+
 function handleDrop(e) {
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
     
     const caseId = e.dataTransfer.getData('text/plain');
-    const folderId = e.currentTarget.dataset.folderId;
+    const targetFolderId = e.currentTarget.dataset.folderId;
     
-    const folder = folders.find(f => f.id === folderId);
-    if (folder && !folder.cases.includes(caseId)) {
-        folder.cases.push(caseId);
-        chrome.storage.local.set({ folders }, () => {
-            renderTrackedCases();
-        });
+    // Remove the case from any existing folder
+    folders.forEach(folder => {
+        folder.cases = folder.cases.filter(id => id !== caseId);
+    });
+    
+    // Add the case to the target folder
+    const targetFolder = folders.find(f => f.id === targetFolderId);
+    if (targetFolder && !targetFolder.cases.includes(caseId)) {
+        targetFolder.cases.push(caseId);
     }
+    
+    // Save the updated folders
+    chrome.storage.local.set({ folders }, () => {
+        renderTrackedCases();
+    });
 }
 
 function selectCase(caseId) {
@@ -468,9 +494,14 @@ function selectCase(caseId) {
 }
 
 function removeCase(caseId) {
-    chrome.runtime.sendMessage({ action: 'removeCase', caseId }, () => {
-        loadCurrentCase();
+    chrome.runtime.sendMessage({ 
+        action: 'removeCase', 
+        caseId: caseId 
+    }, () => {
         loadTrackedCases();
+        if (currentCase && currentCase.caseId === caseId) {
+            clearCurrentCase();
+        }
     });
 }
 
@@ -581,6 +612,45 @@ function renderEmptyTrackedCases() {
       <p>Visit NamUs case pages and click "Track Case" to add them here</p>
     </div>
   `;
+}
+
+function openConfirmationModal(type, data) {
+    let message = '';
+    if (type === 'folder') {
+        message = `Are you sure you want to delete the folder "${data.name}"? All cases within this folder will be moved to the main list.`;
+    } else if (type === 'case') {
+        message = `Are you sure you want to remove "${data.caseName}" from your tracked cases?`;
+    }
+    
+    confirmationMessage.textContent = message;
+    confirmationModal.dataset.type = type;
+    confirmationModal.dataset.data = JSON.stringify(data);
+    confirmationModal.style.display = 'block';
+}
+
+function closeConfirmationModal() {
+    confirmationModal.style.display = 'none';
+    confirmationModal.dataset.type = '';
+    confirmationModal.dataset.data = '';
+}
+
+function handleConfirmation() {
+    const type = confirmationModal.dataset.type;
+    const data = JSON.parse(confirmationModal.dataset.data);
+    
+    if (type === 'folder') {
+        // Remove the folder from the folders array
+        folders = folders.filter(folder => folder.id !== data.id);
+        // Save the updated folders array
+        chrome.storage.local.set({ folders }, () => {
+            loadFolders();
+            loadTrackedCases();
+        });
+    } else if (type === 'case') {
+        removeCase(data.caseId);
+    }
+    
+    closeConfirmationModal();
 }
 
 document.addEventListener('DOMContentLoaded', initSidePanel); 
