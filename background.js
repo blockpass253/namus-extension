@@ -92,13 +92,19 @@ function storeCase(caseData, callback = () => { }) {
 
 // Remove a case from the tracked cases list
 function removeCase(caseId, callback) {
-    chrome.storage.local.get(['trackedCases', 'currentCase'], (result) => {
+    chrome.storage.local.get(['trackedCases', 'currentCase', 'folders'], (result) => {
         let trackedCases = result.trackedCases || [];
         const currentCase = result.currentCase;
+        const folders = result.folders || [];
 
         trackedCases = trackedCases.filter(c => c.caseId !== caseId);
 
-        chrome.storage.local.set({ trackedCases });
+        // Remove the case from all folders
+        folders.forEach(folder => {
+            folder.cases = folder.cases.filter(id => id !== caseId);
+        });
+
+        chrome.storage.local.set({ trackedCases, folders });
 
         if (currentCase && currentCase.caseId === caseId) {
             chrome.storage.local.set({ currentCase: null });
