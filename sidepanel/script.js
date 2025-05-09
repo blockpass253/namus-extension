@@ -318,6 +318,16 @@ function renderTrackedCases() {
         `;
     });
 
+    // Add root drop zone before cases not in folders
+    casesHtml += `
+        <div class="root-drop-zone" data-folder-id="root">
+            <div class="root-drop-zone-content">
+                <div class="root-drop-zone-icon">📂</div>
+                <div class="root-drop-zone-text">Drop here to move to root level</div>
+            </div>
+        </div>
+    `;
+
     // Render cases not in folders
     const casesNotInFolders = trackedCases.filter(caseData => 
         !folders.some(folder => folder.cases.includes(caseData.caseId))
@@ -343,6 +353,31 @@ function renderTrackedCases() {
         folder.addEventListener('dragleave', handleDragLeave);
         folder.addEventListener('drop', handleDrop);
     });
+
+    // Add event listeners for root drop zone
+    const rootDropZone = document.querySelector('.root-drop-zone');
+    if (rootDropZone) {
+        rootDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            rootDropZone.classList.add('drag-over');
+        });
+        
+        rootDropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!rootDropZone.contains(e.relatedTarget)) {
+                rootDropZone.classList.remove('drag-over');
+            }
+        });
+        
+        rootDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            rootDropZone.classList.remove('drag-over');
+            handleDrop(e);
+        });
+    }
 
     // Add event listeners for delete folder buttons
     document.querySelectorAll('.delete-folder-btn').forEach(button => {
@@ -468,10 +503,12 @@ function handleDrop(e) {
         folder.cases = folder.cases.filter(id => id !== caseId);
     });
     
-    // Add the case to the target folder
-    const targetFolder = folders.find(f => f.id === targetFolderId);
-    if (targetFolder && !targetFolder.cases.includes(caseId)) {
-        targetFolder.cases.push(caseId);
+    // If target is not root, add the case to the target folder
+    if (targetFolderId !== 'root') {
+        const targetFolder = folders.find(f => f.id === targetFolderId);
+        if (targetFolder && !targetFolder.cases.includes(caseId)) {
+            targetFolder.cases.push(caseId);
+        }
     }
     
     // Save the updated folders
