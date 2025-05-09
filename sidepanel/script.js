@@ -323,7 +323,7 @@ function renderTrackedCases() {
         <div class="root-drop-zone" data-folder-id="root">
             <div class="root-drop-zone-content">
                 <div class="root-drop-zone-icon">📂</div>
-                <div class="root-drop-zone-text">Drop here to move to root level</div>
+                <div class="root-drop-zone-text">Drop here to move to the main list</div>
             </div>
         </div>
     `;
