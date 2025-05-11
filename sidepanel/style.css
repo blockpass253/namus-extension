@@ -866,3 +866,29 @@ input:checked+.slider:before {
     opacity: 0.5;
     cursor: move;
 }
+
+.tracked-case-item.drop-above {
+    border-top: 2px solid var(--primary-color);
+}
+
+.tracked-case-item.drop-below {
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.tracked-case-item.drop-above::before,
+.tracked-case-item.drop-below::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--primary-color);
+}
+
+.tracked-case-item.drop-above::before {
+    top: -2px;
+}
+
+.tracked-case-item.drop-below::after {
+    bottom: -2px;
+}

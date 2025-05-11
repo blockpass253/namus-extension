@@ -318,16 +318,6 @@ function renderTrackedCases() {
         `;
     });
 
-    // Add root drop zone before cases not in folders
-    casesHtml += `
-        <div class="root-drop-zone" data-folder-id="root">
-            <div class="root-drop-zone-content">
-                <div class="root-drop-zone-icon">📂</div>
-                <div class="root-drop-zone-text">Drop here to move to the main list</div>
-            </div>
-        </div>
-    `;
-
     // Render cases not in folders
     const casesNotInFolders = trackedCases.filter(caseData => 
         !folders.some(folder => folder.cases.includes(caseData.caseId))
@@ -336,6 +326,16 @@ function renderTrackedCases() {
     casesNotInFolders.forEach(caseData => {
         casesHtml += renderCaseItem(caseData);
     });
+
+    // Add root drop zone at the bottom
+    casesHtml += `
+        <div class="root-drop-zone" data-folder-id="root">
+            <div class="root-drop-zone-content">
+                <div class="root-drop-zone-icon">📂</div>
+                <div class="root-drop-zone-text">Drop here to move to the main list</div>
+            </div>
+        </div>
+    `;
 
     trackedCasesList.innerHTML = casesHtml;
 
@@ -404,6 +404,9 @@ function renderTrackedCases() {
         item.setAttribute('draggable', true);
         item.addEventListener('dragstart', handleDragStart);
         item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleCaseDragOver);
+        item.addEventListener('dragleave', handleCaseDragLeave);
+        item.addEventListener('drop', handleCaseDrop);
     });
 
     document.querySelectorAll(".delete-case-btn").forEach(button => {
@@ -695,6 +698,72 @@ function handleConfirmation() {
     }
     
     closeConfirmationModal();
+}
+
+function handleCaseDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggedItem = document.querySelector('.dragging');
+    const currentItem = e.currentTarget;
+    
+    if (draggedItem !== currentItem) {
+        const rect = currentItem.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        
+        if (e.clientY < midY) {
+            currentItem.classList.add('drop-above');
+            currentItem.classList.remove('drop-below');
+        } else {
+            currentItem.classList.add('drop-below');
+            currentItem.classList.remove('drop-above');
+        }
+    }
+}
+
+function handleCaseDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('drop-above', 'drop-below');
+}
+
+function handleCaseDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const draggedCaseId = e.dataTransfer.getData('text/plain');
+    const targetCaseId = e.currentTarget.dataset.caseId;
+    
+    if (draggedCaseId === targetCaseId) {
+        e.currentTarget.classList.remove('drop-above', 'drop-below');
+        return;
+    }
+    
+    const draggedCase = trackedCases.find(c => c.caseId === draggedCaseId);
+    const targetCase = trackedCases.find(c => c.caseId === targetCaseId);
+    
+    if (!draggedCase || !targetCase) return;
+    
+    // Remove the dragged case from its current position
+    trackedCases = trackedCases.filter(c => c.caseId !== draggedCaseId);
+    
+    // Find the target index
+    const targetIndex = trackedCases.findIndex(c => c.caseId === targetCaseId);
+    
+    // Insert the dragged case at the appropriate position
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    
+    if (e.clientY < midY) {
+        trackedCases.splice(targetIndex, 0, draggedCase);
+    } else {
+        trackedCases.splice(targetIndex + 1, 0, draggedCase);
+    }
+    
+    chrome.storage.local.set({ trackedCases }, () => {
+        renderTrackedCases();
+    });
+    
+    e.currentTarget.classList.remove('drop-above', 'drop-below');
 }
 
 document.addEventListener('DOMContentLoaded', initSidePanel); 
