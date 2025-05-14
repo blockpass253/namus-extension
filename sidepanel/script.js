@@ -686,9 +686,7 @@ function handleConfirmation() {
     const data = JSON.parse(confirmationModal.dataset.data);
     
     if (type === 'folder') {
-        // Remove the folder from the folders array
         folders = folders.filter(folder => folder.id !== data.id);
-        // Save the updated folders array
         chrome.storage.local.set({ folders }, () => {
             loadFolders();
             loadTrackedCases();
@@ -743,23 +741,39 @@ function handleCaseDrop(e) {
     
     if (!draggedCase || !targetCase) return;
     
-    // Remove the dragged case from its current position
-    trackedCases = trackedCases.filter(c => c.caseId !== draggedCaseId);
+    // Get cases not in folders for reordering
+    const casesNotInFolders = trackedCases.filter(caseData => 
+        !folders.some(folder => folder.cases.includes(caseData.caseId))
+    );
     
-    // Find the target index
-    const targetIndex = trackedCases.findIndex(c => c.caseId === targetCaseId);
+    // Find the target index in the main list
+    const targetIndex = casesNotInFolders.findIndex(c => c.caseId === targetCaseId);
+    
+    if (targetIndex === -1) return;
+    
+    // Remove the dragged case from any folder it might be in
+    folders.forEach(folder => {
+        folder.cases = folder.cases.filter(id => id !== draggedCaseId);
+    });
+    
+    // Remove the dragged case from its current position in trackedCases
+    trackedCases = trackedCases.filter(c => c.caseId !== draggedCaseId);
     
     // Insert the dragged case at the appropriate position
     const rect = e.currentTarget.getBoundingClientRect();
     const midY = rect.top + rect.height / 2;
     
+    // Calculate the new index in trackedCases
+    let newIndex;
     if (e.clientY < midY) {
-        trackedCases.splice(targetIndex, 0, draggedCase);
+        newIndex = trackedCases.findIndex(c => c.caseId === targetCaseId);
     } else {
-        trackedCases.splice(targetIndex + 1, 0, draggedCase);
+        newIndex = trackedCases.findIndex(c => c.caseId === targetCaseId) + 1;
     }
     
-    chrome.storage.local.set({ trackedCases }, () => {
+    trackedCases.splice(newIndex, 0, draggedCase);
+    
+    chrome.storage.local.set({ trackedCases, folders }, () => {
         renderTrackedCases();
     });
     
