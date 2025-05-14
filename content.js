@@ -75,10 +75,12 @@ function waitForAttachmentsContent() {
                 const hasAttachmentCards = attachmentCards.length > 0;
 
                 const hasNoAttachmentsMessage = attachmentsContainer.querySelector('.no-attachments-message') !== null;
+                const hasZeroAttachmentsMessage = attachmentsContainer.querySelector('h3')?.textContent.includes('0 Images or Documents') === true;
+                const hasNoImagesMessage = attachmentsContainer.querySelector('h4')?.textContent === 'No Images or Documents';
                 const isAttachmentsTabActive = document.querySelector('.menu-text a[ng-click="vm.goToPage(\'attachments\')"].tab-active') !== null;
 
-                // If the tab is active and either has cards or a "no attachments" message, content is loaded
-                if (isAttachmentsTabActive && (hasAttachmentCards || hasNoAttachmentsMessage)) {
+                // If the tab is active and either has cards or any of the "no attachments" messages, content is loaded
+                if (isAttachmentsTabActive && (hasAttachmentCards || hasNoAttachmentsMessage || hasZeroAttachmentsMessage || hasNoImagesMessage)) {
                     const attachments = extractAttachmentsContent();
                     resolve(attachments);
                     return;
