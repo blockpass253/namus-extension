@@ -914,3 +914,23 @@ input:checked+.slider:before {
 .tracked-case-item.drop-below::after {
     bottom: -2px;
 }
+
+.empty-drop-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px 0;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+}
+
+.empty-drop-area.drag-over {
+    border-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.empty-drop-message {
+    color: #666;
+    font-size: 14px;
+}

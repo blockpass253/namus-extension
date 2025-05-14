@@ -323,9 +323,18 @@ function renderTrackedCases() {
         !folders.some(folder => folder.cases.includes(caseData.caseId))
     );
 
-    casesNotInFolders.forEach(caseData => {
-        casesHtml += renderCaseItem(caseData);
-    });
+    // Add empty drop area if there are no cases at root level
+    if (casesNotInFolders.length === 0) {
+        casesHtml += `
+            <div class="empty-drop-area" data-drop-target="root">
+                <div class="empty-drop-message">Drop cases here to move them to the main list</div>
+            </div>
+        `;
+    } else {
+        casesNotInFolders.forEach(caseData => {
+            casesHtml += renderCaseItem(caseData);
+        });
+    }
 
     trackedCasesList.innerHTML = casesHtml;
 
@@ -349,6 +358,13 @@ function renderTrackedCases() {
         folder.addEventListener('dragover', handleDragOver);
         folder.addEventListener('dragleave', handleDragLeave);
         folder.addEventListener('drop', handleDrop);
+    });
+
+    // Add event listeners for empty drop area
+    document.querySelectorAll('.empty-drop-area').forEach(area => {
+        area.addEventListener('dragover', handleDragOver);
+        area.addEventListener('dragleave', handleDragLeave);
+        area.addEventListener('drop', handleDrop);
     });
 
     // Add event listeners for delete folder buttons
