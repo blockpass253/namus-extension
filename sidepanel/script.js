@@ -305,7 +305,7 @@ function renderTrackedCases() {
     // Render folders
     folders.forEach(folder => {
         casesHtml += `
-            <div class="folder-item" data-folder-id="${folder.id}">
+            <div class="folder-item" data-folder-id="${folder.id}" draggable="true">
                 <div class="folder-icon">📁</div>
                 <div class="folder-name">${folder.name}</div>
                 <div class="folder-actions">
@@ -338,7 +338,14 @@ function renderTrackedCases() {
             }
         });
 
-        // Add drag and drop event listeners for folders
+        // Add folder drag and drop event listeners
+        folder.addEventListener('dragstart', handleFolderDragStart);
+        folder.addEventListener('dragend', handleFolderDragEnd);
+        folder.addEventListener('dragover', handleFolderDragOver);
+        folder.addEventListener('dragleave', handleFolderDragLeave);
+        folder.addEventListener('drop', handleFolderDrop);
+
+        // Add case drag and drop event listeners for folders
         folder.addEventListener('dragover', handleDragOver);
         folder.addEventListener('dragleave', handleDragLeave);
         folder.addEventListener('drop', handleDrop);
@@ -443,6 +450,7 @@ function removeFolder(folderId) {
 function handleDragStart(e) {
     e.target.classList.add('dragging');
     e.dataTransfer.setData('text/plain', e.target.dataset.caseId);
+    e.dataTransfer.setData('type', 'case');
 }
 
 function handleDragEnd(e) {
@@ -451,38 +459,53 @@ function handleDragEnd(e) {
 
 function handleDragOver(e) {
     e.preventDefault();
-    e.currentTarget.classList.add('drag-over');
+    const type = e.dataTransfer.getData('type');
+    
+    // Only show drop indicator for cases
+    if (type === 'case') {
+        e.currentTarget.classList.add('drag-over');
+    }
 }
 
 function handleDragLeave(e) {
     e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
+    const type = e.dataTransfer.getData('type');
+    
+    // Only remove drop indicator for cases
+    if (type === 'case') {
+        e.currentTarget.classList.remove('drag-over');
+    }
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
+    const type = e.dataTransfer.getData('type');
     
-    const caseId = e.dataTransfer.getData('text/plain');
-    const targetFolderId = e.currentTarget.dataset.folderId;
-    
-    // Remove the case from any existing folder
-    folders.forEach(folder => {
-        folder.cases = folder.cases.filter(id => id !== caseId);
-    });
-    
-    // If target is not root, add the case to the target folder
-    if (targetFolderId !== 'root') {
-        const targetFolder = folders.find(f => f.id === targetFolderId);
-        if (targetFolder && !targetFolder.cases.includes(caseId)) {
-            targetFolder.cases.push(caseId);
+    // Only handle case drops
+    if (type === 'case') {
+        e.currentTarget.classList.remove('drag-over');
+        
+        const caseId = e.dataTransfer.getData('text/plain');
+        const targetFolderId = e.currentTarget.dataset.folderId;
+        
+        // Remove the case from any existing folder
+        folders.forEach(folder => {
+            folder.cases = folder.cases.filter(id => id !== caseId);
+        });
+        
+        // If target is not root, add the case to the target folder
+        if (targetFolderId !== 'root') {
+            const targetFolder = folders.find(f => f.id === targetFolderId);
+            if (targetFolder && !targetFolder.cases.includes(caseId)) {
+                targetFolder.cases.push(caseId);
+            }
         }
+        
+        // Save the updated folders
+        chrome.storage.local.set({ folders }, () => {
+            renderTrackedCases();
+        });
     }
-    
-    // Save the updated folders
-    chrome.storage.local.set({ folders }, () => {
-        renderTrackedCases();
-    });
 }
 
 function selectCase(caseId) {
@@ -743,6 +766,99 @@ function handleCaseDrop(e) {
     });
     
     e.currentTarget.classList.remove('drop-above', 'drop-below');
+}
+
+function handleFolderDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', e.target.dataset.folderId);
+    e.dataTransfer.setData('type', 'folder');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleFolderDragEnd(e) {
+    e.target.classList.remove('dragging');
+    document.querySelectorAll('.folder-item').forEach(item => {
+        item.classList.remove('drop-above', 'drop-below');
+    });
+}
+
+function handleFolderDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const type = e.dataTransfer.getData('type');
+    
+    if (type === 'folder') {
+        const draggedItem = document.querySelector('.folder-item.dragging');
+        const currentItem = e.currentTarget;
+        
+        if (draggedItem !== currentItem) {
+            const rect = currentItem.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                currentItem.classList.add('drop-above');
+                currentItem.classList.remove('drop-below');
+            } else {
+                currentItem.classList.add('drop-below');
+                currentItem.classList.remove('drop-above');
+            }
+        }
+    }
+}
+
+function handleFolderDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const type = e.dataTransfer.getData('type');
+    
+    if (type === 'folder') {
+        e.currentTarget.classList.remove('drop-above', 'drop-below');
+    }
+}
+
+function handleFolderDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const type = e.dataTransfer.getData('type');
+    
+    if (type === 'folder') {
+        const draggedFolderId = e.dataTransfer.getData('text/plain');
+        const targetFolderId = e.currentTarget.dataset.folderId;
+        
+        if (draggedFolderId === targetFolderId) {
+            e.currentTarget.classList.remove('drop-above', 'drop-below');
+            return;
+        }
+        
+        const draggedFolder = folders.find(f => f.id === draggedFolderId);
+        const targetFolder = folders.find(f => f.id === targetFolderId);
+        
+        if (!draggedFolder || !targetFolder) return;
+        
+        // Remove the dragged folder from its current position
+        folders = folders.filter(f => f.id !== draggedFolderId);
+        
+        // Find the target index
+        const targetIndex = folders.findIndex(f => f.id === targetFolderId);
+        
+        // Insert the dragged folder at the appropriate position
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        
+        if (e.clientY < midY) {
+            folders.splice(targetIndex, 0, draggedFolder);
+        } else {
+            folders.splice(targetIndex + 1, 0, draggedFolder);
+        }
+        
+        chrome.storage.local.set({ folders }, () => {
+            renderTrackedCases();
+        });
+        
+        e.currentTarget.classList.remove('drop-above', 'drop-below');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initSidePanel); 
