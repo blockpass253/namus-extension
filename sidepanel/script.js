@@ -327,16 +327,6 @@ function renderTrackedCases() {
         casesHtml += renderCaseItem(caseData);
     });
 
-    // Add root drop zone at the bottom
-    casesHtml += `
-        <div class="root-drop-zone" data-folder-id="root">
-            <div class="root-drop-zone-content">
-                <div class="root-drop-zone-icon">📂</div>
-                <div class="root-drop-zone-text">Drop here to move to the main list</div>
-            </div>
-        </div>
-    `;
-
     trackedCasesList.innerHTML = casesHtml;
 
     // Add event listeners for folders
@@ -353,31 +343,6 @@ function renderTrackedCases() {
         folder.addEventListener('dragleave', handleDragLeave);
         folder.addEventListener('drop', handleDrop);
     });
-
-    // Add event listeners for root drop zone
-    const rootDropZone = document.querySelector('.root-drop-zone');
-    if (rootDropZone) {
-        rootDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            rootDropZone.classList.add('drag-over');
-        });
-        
-        rootDropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!rootDropZone.contains(e.relatedTarget)) {
-                rootDropZone.classList.remove('drag-over');
-            }
-        });
-        
-        rootDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            rootDropZone.classList.remove('drag-over');
-            handleDrop(e);
-        });
-    }
 
     // Add event listeners for delete folder buttons
     document.querySelectorAll('.delete-folder-btn').forEach(button => {
