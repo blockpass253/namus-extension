@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "mkdir -p dist && cp -r manifest.json sidepanel icons dist/ && npm run minify",
-    "minify": "terser background.js -c passes=2 -m -o dist/background.js && terser content.js -c passes=2 -m -o dist/content.js",
+    "minify": "terser background.js -c passes=2 -m -o dist/background.js && terser content.js -c passes=2 -m -o dist/content.js && terser sidepanel/script.js -c passes=2 -m -o dist/sidepanel/script.js",
     "zip": "cd dist && zip -r ../namus-extension.zip *"
   },
   "repository": {
